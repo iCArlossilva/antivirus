@@ -1,0 +1,75 @@
+@echo off
+Cls
+Title UniVirus
+setlocal enabledelayedexpansion
+
+
+set "fileNames=script-aula.bat script-aula-teste.bat execucao-aula.exe execucao-aula-teste.exe"
+
+
+:inicio
+echo Escolha o drive que deseja verificar:
+echo.
+for %%d in (C D E F G H I J) do (
+    if exist %%d:\ (echo %%d:\)
+)
+echo.
+set /p drive=Digite a letra do drive:
+
+if not exist %drive%:\ (
+    echo.
+    echo Driver não encontrado! Tente novamente.
+    pause
+    goto inicio
+)
+
+
+set "foundFiles="
+set count=0
+
+echo Pesquisando por "%fileNames%" no disco %drive%...
+echo Aguarde, isso pode levar algum tempo.
+
+
+for %%f in (%fileNames%) do (
+    for /f "delims=" %%i in ('powershell -NoProfile -Command "Get-ChildItem -Path %drive%:\ -Recurse -File -Filter %%f -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName }"') do (
+        set /a count+=1
+        echo %%i >> resultados_temp.txt
+    )
+)
+
+
+if %count%==0 (
+    echo Nenhum dos arquivos especificados foi encontrado no disco %drive%.
+) else (
+    echo Arquivos encontrados:
+    echo.
+    type resultados_temp.txt
+    echo.
+    echo Total de arquivos encontrados: %count%
+
+    
+    echo.
+    choice /c sn /m "Deseja deletar os arquivos encontrados? (S/N):"
+    if errorlevel 2 goto fim
+    if errorlevel 1 (
+        echo Deletando arquivos...
+        for /f "delims=" %%i in (resultados_temp.txt) do (
+            del "%%i" 2>nul
+            if exist "%%i" (
+                echo Erro ao deletar: %%i
+            ) else (
+                echo Arquivo deletado: %%i
+            )
+        )
+        echo Todos os arquivos encontrados foram deletados.
+    )
+)
+
+:fim
+
+if exist resultados_temp.txt del resultados_temp.txt
+
+echo.
+echo Operacao concluida.
+pause
